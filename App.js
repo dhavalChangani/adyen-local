@@ -9,7 +9,7 @@ import {
 } from "./src/adyen-node-api-library-develop/src/typings/terminal/models";
 
 const App = () => {
-  const [localUrl, setLocalUrl] = useState("http://10.0.2.2");
+  const [localUrl, setLocalUrl] = useState("http://localhost");
   const [poiId, setPoiId] = useState("S1F2-000158215131701");
 
   const adyenLocalCheckout = async (params, onSuccess, onFailure) => {
