@@ -1,5 +1,6 @@
 // Rename this sample file to main.js to use on your project.
 // The main.js file will be overwritten in updates/reinstalls.
+// process.env["NODE_TLS_REJECT_UNAUTHORIZED"] = 0;
 
 var rn_bridge = require("rn-bridge");
 const { Client, TerminalLocalAPI, Config } = require("@adyen/api-library");
@@ -12,6 +13,11 @@ const {
   MessageClassType,
 } = require("@adyen/api-library/lib/src/typings/terminal/messageClassType");
 const { MessageType } = require("@adyen/api-library/lib/src/typings/terminal/messageType");
+const path = require("path");
+
+// rn_bridge.channel.send({
+//   certificatePath: path.resolve(__dirname + "/adyen-terminalfleet-test.pem"),
+// });
 
 const createPaymentRequest = (poiId) => {
   const id = Math.floor(Math.random() * Math.floor(10000000)).toString();
@@ -116,6 +122,9 @@ rn_bridge.channel.on("message", async (msg) => {
     try {
       const config = new Config();
       config.terminalApiLocalEndpoint = msg.url;
+      if (msg.addCertificate && msg.addCertificate.length > 0) {
+        config.certificatePath = path.resolve(__dirname + "/adyen-terminalfleet-test.pem");
+      }
       const client = new Client({ config });
       client.setEnvironment("TEST", null);
 
@@ -130,7 +139,6 @@ rn_bridge.channel.on("message", async (msg) => {
       };
       const result = await localAPI.request(terminalPaymentRequest, securityKeyObj);
 
-      rn_bridge.channel.send({ result });
       httpsAPI(backendUrl, {
         result,
         from: "TerminalLocalAPI Response",
@@ -140,12 +148,10 @@ rn_bridge.channel.on("message", async (msg) => {
         error,
         from: "TerminalLocalAPI Error",
       });
-      rn_bridge.channel.send({ catch: error });
     }
   } else {
     try {
       const normalRequest = await httpsAPI(`${msg.url}:8443/nexo`, terminalPaymentRequest);
-      rn_bridge.channel.send({ result });
       await httpsAPI(backendUrl, {
         normalRequest,
         from: "TerminalLocalAPI NORMAL REQ",
@@ -153,7 +159,6 @@ rn_bridge.channel.on("message", async (msg) => {
         rn_bridge.channel.send({ funcCatch: error });
       });
     } catch (err) {
-      rn_bridge.channel.send({ catch: err });
       await httpsAPI(backendUrl, {
         err,
         from: "TerminalLocalAPI NORMAL REQ ERR",

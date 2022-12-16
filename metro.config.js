@@ -4,6 +4,7 @@
  *
  * @format
  */
+const blacklist = require("metro-config/src/defaults/exclusionList");
 
 module.exports = {
   transformer: {
@@ -15,7 +16,8 @@ module.exports = {
     }),
   },
   resolver: {
-    extraNodeModules: require('node-libs-react-native'),
+    extraNodeModules: require("node-libs-react-native"),
+    blacklistRE: blacklist([/\/nodejs-assets\/.*/, /\/android\/.*/, /\/ios\/.*/]),
   },
-  server: {port: 9988},
+  server: { port: 9988 },
 };

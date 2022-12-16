@@ -14,6 +14,8 @@ const App = () => {
   const [poiId, setPoiId] = useState("S1F2-000158215131701");
   const [keyIdentifier, setKeyIdentifier] = useState("NOQ_EPOS");
   const [passphrase, setPassphrase] = useState("noq_epos_key_passphrase");
+  const [addCertificate, setAddCertificate] = useState();
+  const [certificatePath, setCertificatePath] = useState("");
 
   // const date = new Date().toISOString();
   // const id = Math.floor(Math.random() * Math.floor(10000000)).toString();
@@ -66,6 +68,9 @@ const App = () => {
       "message",
       (msg) => {
         console.log({ msg });
+        if (msg.certificatePath) {
+          setCertificatePath(msg.certificatePath);
+        }
       },
       this
     );
@@ -138,7 +143,6 @@ const App = () => {
           textAlign: "center",
         }}
       />
-
       <TextInput
         placeholder="Terminal Id"
         onChangeText={setPoiId}
@@ -153,7 +157,20 @@ const App = () => {
           textAlign: "center",
         }}
       />
-
+      <TextInput
+        placeholder="Want to Add Certificate?"
+        onChangeText={setAddCertificate}
+        value={addCertificate}
+        style={{
+          padding: 10,
+          margin: 10,
+          backgroundColor: "pink",
+          height: 40,
+          width: "100%",
+          color: "black",
+          textAlign: "center",
+        }}
+      />
       <View style={{ padding: 10, margin: 10 }}>
         <Button
           style={{ backgroundColor: "red", padding: 10, margin: 10 }}
@@ -165,6 +182,7 @@ const App = () => {
               passphrase,
               POIID: poiId,
               url: localUrl,
+              addCertificate,
             });
           }}
         />
@@ -177,6 +195,9 @@ const App = () => {
             nodejs.channel.send({ type: 0, POIID: poiId, url: localUrl });
           }}
         />
+      </View>
+      <View style={{ padding: 10, margin: 10 }}>
+        <Text>{certificatePath}</Text>
       </View>
     </View>
   );
