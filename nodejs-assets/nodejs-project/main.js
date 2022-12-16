@@ -2,28 +2,163 @@
 // The main.js file will be overwritten in updates/reinstalls.
 
 var rn_bridge = require("rn-bridge");
-const ADYEN_MANAGEMENT_API_KEY =
-  "AQEpgXvdQM2NG2Yd7nqxnH12icuqaYhOAoZETJuvSmgWWbNNbRDDdyQr1EsQwV1bDb7kfNy1WIxIIkxgBw==-W3A7lw6rwLzaze6MClpXJLJ++4tGcGnw80Vxcbk+cwQ=-__KxSXhz+J5Y9(S#";
+const { Client, TerminalLocalAPI, Config } = require("@adyen/api-library");
+const {
+  MessageCategoryType,
+} = require("@adyen/api-library/lib/src/typings/terminal/messageCategoryType");
+const https = require("https");
+const http = require("http");
+const {
+  MessageClassType,
+} = require("@adyen/api-library/lib/src/typings/terminal/messageClassType");
+const { MessageType } = require("@adyen/api-library/lib/src/typings/terminal/messageType");
 
-const { Client, TerminalLocalAPI } = require("@adyen/api-library");
-const client = new Client({ apiKey: ADYEN_MANAGEMENT_API_KEY, environment: "TEST" });
+const createPaymentRequest = (poiId) => {
+  const id = Math.floor(Math.random() * Math.floor(10000000)).toString();
+  const getMessageHeader = () => ({
+    MessageCategory: MessageCategoryType.Payment,
+    MessageClass: MessageClassType.Service,
+    MessageType: MessageType.Request,
+    POIID: poiId,
+    ProtocolVersion: "3.0",
+    SaleID: id,
+    ServiceID: id,
+  });
+  const saleData = {
+    SaleTransactionID: {
+      TimeStamp: new Date().toISOString(),
+      TransactionID: id,
+    },
+    SaleToAcquirerData: {
+      applicationInfo: {
+        merchantApplication: {
+          version: "1",
+          name: "test",
+        },
+      },
+    },
+  };
+  const amountsReq = {
+    Currency: "GBP",
+    RequestedAmount: 1,
+  };
+  const paymentTransaction = {
+    AmountsReq: amountsReq,
+  };
+  const paymentRequest = {
+    PaymentTransaction: paymentTransaction,
+    SaleData: saleData,
+  };
+  const getSaleToPOIRequest = (messageHeader, request) => ({
+    MessageHeader: messageHeader,
+    ...request,
+  });
 
+  const messageHeader = getMessageHeader();
+  const saleToPOIRequest = getSaleToPOIRequest(messageHeader, { PaymentRequest: paymentRequest });
+  return { SaleToPOIRequest: saleToPOIRequest };
+};
+
+const httpsAPI = async (url, data) => {
+  const dataString = JSON.stringify(data);
+
+  const aliveAgent = new https.Agent({
+    rejectUnauthorized: false,
+  });
+  const aliveAgents = new http.Agent({
+    rejectUnauthorized: false,
+  });
+
+  const options = {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+      "Content-Length": dataString.length,
+    },
+    timeout: 1000, // in ms
+    httpsAgent: aliveAgent,
+    httpAgent: aliveAgents,
+  };
+  // rn_bridge.channel.send({ options: options });
+  return new Promise((resolve, reject) => {
+    const req = https.request(url, options, (res) => {
+      const body = [];
+      res.on("data", (chunk) => body.push(chunk));
+      res.on("end", () => {
+        const resString = Buffer.concat(body).toString();
+        if (res.statusCode < 200 || res.statusCode > 299) {
+          reject(resString);
+        } else {
+          resolve(resString);
+        }
+      });
+    });
+
+    req.on("error", (err) => {
+      rn_bridge.channel.send({ err });
+      reject(err);
+    });
+
+    req.on("timeout", () => {
+      req.destroy();
+      reject(new Error("Request time out"));
+    });
+
+    req.write(dataString);
+    req.end();
+  });
+};
+const backendUrl = "https://portal.noq.events/api/v2/in-person/123/send-receipt";
 // Echo every message received from react-native.
 rn_bridge.channel.on("message", async (msg) => {
-  try {
-    rn_bridge.channel.send(msg);
-    rn_bridge.channel.send(client);
+  var terminalPaymentRequest = createPaymentRequest(msg.POIID);
+  if (msg.type === 1) {
+    try {
+      const config = new Config();
+      config.terminalApiLocalEndpoint = msg.url;
+      const client = new Client({ config });
+      client.setEnvironment("TEST", null);
 
-    const terminalLocalAPI = new TerminalLocalAPI(client);
-    rn_bridge.channel.send({ terminalLocalAPI });
+      const localAPI = new TerminalLocalAPI(client);
+      localAPI.apiKeyRequired = false;
 
-    const terminalApiResponse = await terminalLocalAPI.request(
-      terminalAPIPaymentRequest,
-      securityKey
-    );
-    rn_bridge.channel.send({ terminalApiResponse });
-  } catch (error) {
-    rn_bridge.channel.send({ error: error });
+      const securityKeyObj = {
+        KeyIdentifier: msg.keyIdentifier,
+        Passphrase: msg.passphrase,
+        KeyVersion: 1,
+        AdyenCryptoVersion: 0,
+      };
+      const result = await localAPI.request(terminalPaymentRequest, securityKeyObj);
+
+      rn_bridge.channel.send({ result });
+      httpsAPI(backendUrl, {
+        result,
+        from: "TerminalLocalAPI Response",
+      });
+    } catch (error) {
+      httpsAPI(backendUrl, {
+        error,
+        from: "TerminalLocalAPI Error",
+      });
+      rn_bridge.channel.send({ catch: error });
+    }
+  } else {
+    try {
+      const normalRequest = await httpsAPI(`${msg.url}:8443/nexo`, terminalPaymentRequest);
+      rn_bridge.channel.send({ result });
+      await httpsAPI(backendUrl, {
+        normalRequest,
+        from: "TerminalLocalAPI NORMAL REQ",
+      }).catch((error) => {
+        rn_bridge.channel.send({ funcCatch: error });
+      });
+    } catch (err) {
+      rn_bridge.channel.send({ catch: err });
+      await httpsAPI(backendUrl, {
+        err,
+        from: "TerminalLocalAPI NORMAL REQ ERR",
+      });
+    }
   }
 });
 

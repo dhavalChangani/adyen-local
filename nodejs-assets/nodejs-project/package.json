@@ -10,6 +10,8 @@
   "author": "janeasystems",
   "license": "",
   "dependencies": {
-    "@adyen/api-library": "^12.1.0"
+    "@adyen/api-library": "^12.1.0",
+    "axios": "^1.2.1",
+    "crypto": "^1.0.1"
   }
 }

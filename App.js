@@ -10,55 +10,55 @@ import {
 import nodejs from "nodejs-mobile-react-native";
 
 const App = () => {
-  const [localUrl, setLocalUrl] = useState("http://localhost");
+  const [localUrl, setLocalUrl] = useState("https://localhost");
   const [poiId, setPoiId] = useState("S1F2-000158215131701");
   const [keyIdentifier, setKeyIdentifier] = useState("NOQ_EPOS");
   const [passphrase, setPassphrase] = useState("noq_epos_key_passphrase");
 
-  const date = new Date().toISOString();
-  const id = Math.floor(Math.random() * Math.floor(10000000)).toString();
-  const paymentRequest = {
-    SaleToPOIRequest: {
-      MessageHeader: {
-        MessageCategory: "Payment",
-        MessageClass: "Service",
-        MessageType: "Request",
-        POIID: poiId,
-        ProtocolVersion: "3.0",
-        SaleID: id,
-        ServiceID: id,
-      },
-      PaymentRequest: {
-        PaymentTransaction: {
-          AmountsReq: {
-            Currency: "GBP",
-            RequestedAmount: 1,
-          },
-        },
-        SaleData: {
-          SaleTransactionID: {
-            TimeStamp: date,
-            TransactionID: id,
-          },
-          SaleToAcquirerData: {
-            applicationInfo: {
-              merchantApplication: {
-                version: "1",
-                name: "test",
-              },
-            },
-          },
-        },
-      },
-    },
-  };
+  // const date = new Date().toISOString();
+  // const id = Math.floor(Math.random() * Math.floor(10000000)).toString();
+  // const paymentRequest = {
+  //   SaleToPOIRequest: {
+  //     MessageHeader: {
+  //       MessageCategory: "Payment",
+  //       MessageClass: "Service",
+  //       MessageType: "Request",
+  //       POIID: poiId,
+  //       ProtocolVersion: "3.0",
+  //       SaleID: id,
+  //       ServiceID: id,
+  //     },
+  //     PaymentRequest: {
+  //       PaymentTransaction: {
+  //         AmountsReq: {
+  //           Currency: "GBP",
+  //           RequestedAmount: 1,
+  //         },
+  //       },
+  //       SaleData: {
+  //         SaleTransactionID: {
+  //           TimeStamp: date,
+  //           TransactionID: id,
+  //         },
+  //         SaleToAcquirerData: {
+  //           applicationInfo: {
+  //             merchantApplication: {
+  //               version: "1",
+  //               name: "test",
+  //             },
+  //           },
+  //         },
+  //       },
+  //     },
+  //   },
+  // };
 
-  const securityKeyObj = {
-    KeyIdentifier: keyIdentifier,
-    Passphrase: passphrase,
-    KeyVersion: 1,
-    AdyenCryptoVersion: 0,
-  };
+  // const securityKeyObj = {
+  //   KeyIdentifier: keyIdentifier,
+  //   Passphrase: passphrase,
+  //   KeyVersion: 1,
+  //   AdyenCryptoVersion: 0,
+  // };
 
   useEffect(() => {
     nodejs.start("main.js");
@@ -96,9 +96,10 @@ const App = () => {
         alignItems: "center",
       }}
     >
-      {/* <TextInput
-        placeholder="Input Url"
-        onChangeText={setLocalUrl}
+      <TextInput
+        placeholder="Key Identifier"
+        onChangeText={setKeyIdentifier}
+        value={keyIdentifier}
         style={{
           padding: 10,
           margin: 10,
@@ -108,11 +109,40 @@ const App = () => {
           color: "black",
           textAlign: "center",
         }}
-      /> */}
+      />
+      <TextInput
+        placeholder="Key Passphrase"
+        onChangeText={setPassphrase}
+        value={passphrase}
+        style={{
+          padding: 10,
+          margin: 10,
+          backgroundColor: "pink",
+          height: 40,
+          width: "100%",
+          color: "black",
+          textAlign: "center",
+        }}
+      />
+      <TextInput
+        placeholder="Input Url"
+        onChangeText={setLocalUrl}
+        value={localUrl}
+        style={{
+          padding: 10,
+          margin: 10,
+          backgroundColor: "pink",
+          height: 40,
+          width: "100%",
+          color: "black",
+          textAlign: "center",
+        }}
+      />
 
       <TextInput
         placeholder="Terminal Id"
         onChangeText={setPoiId}
+        value={poiId}
         style={{
           padding: 10,
           margin: 10,
@@ -124,13 +154,30 @@ const App = () => {
         }}
       />
 
-      <Button
-        style={{ backgroundColor: "red", marginTop: "10%" }}
-        title={"Encrypted"}
-        onPress={() => {
-          nodejs.channel.send({ paymentRequest, securityKeyObj });
-        }}
-      />
+      <View style={{ padding: 10, margin: 10 }}>
+        <Button
+          style={{ backgroundColor: "red", padding: 10, margin: 10 }}
+          title={"Encrypted"}
+          onPress={() => {
+            nodejs.channel.send({
+              type: 1,
+              keyIdentifier,
+              passphrase,
+              POIID: poiId,
+              url: localUrl,
+            });
+          }}
+        />
+      </View>
+      <View style={{ padding: 10, margin: 10 }}>
+        <Button
+          style={{ backgroundColor: "red", padding: 10, margin: 10 }}
+          title={"NON Encrypted"}
+          onPress={() => {
+            nodejs.channel.send({ type: 0, POIID: poiId, url: localUrl });
+          }}
+        />
+      </View>
     </View>
   );
 };
