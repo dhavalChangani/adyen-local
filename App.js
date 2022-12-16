@@ -12,9 +12,9 @@ import nodejs from "nodejs-mobile-react-native";
 const App = () => {
   const [localUrl, setLocalUrl] = useState("https://localhost");
   const [poiId, setPoiId] = useState("S1F2-000158215131701");
-  const [keyIdentifier, setKeyIdentifier] = useState("NOQ_EPOS");
-  const [passphrase, setPassphrase] = useState("noq_epos_key_passphrase");
-  const [addCertificate, setAddCertificate] = useState();
+  const [keyIdentifier, setKeyIdentifier] = useState("123456");
+  const [passphrase, setPassphrase] = useState("123456");
+  const [addCertificate, setAddCertificate] = useState(0);
   const [certificatePath, setCertificatePath] = useState("");
 
   // const date = new Date().toISOString();

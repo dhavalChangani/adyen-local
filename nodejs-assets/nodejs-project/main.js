@@ -122,12 +122,11 @@ rn_bridge.channel.on("message", async (msg) => {
     try {
       const config = new Config();
       config.terminalApiLocalEndpoint = msg.url;
-      if (msg.addCertificate && msg.addCertificate.length > 0) {
-        config.certificatePath = path.resolve(__dirname + "/adyen-terminalfleet-test.pem");
-      }
+      config.merchantAccount = "NOQAccountPOS";
+      config.certificatePath = path.join(__dirname, "adyen-terminalfleet-test.pem");
+
       const client = new Client({ config });
       client.setEnvironment("TEST", null);
-
       const localAPI = new TerminalLocalAPI(client);
       localAPI.apiKeyRequired = false;
 
@@ -135,14 +134,22 @@ rn_bridge.channel.on("message", async (msg) => {
         KeyIdentifier: msg.keyIdentifier,
         Passphrase: msg.passphrase,
         KeyVersion: 1,
-        AdyenCryptoVersion: 0,
+        AdyenCryptoVersion: 1,
       };
-      const result = await localAPI.request(terminalPaymentRequest, securityKeyObj);
-
-      httpsAPI(backendUrl, {
-        result,
-        from: "TerminalLocalAPI Response",
-      });
+      const result = await localAPI
+        .request(terminalPaymentRequest, securityKeyObj)
+        .catch((localError) => {
+          httpsAPI(backendUrl, {
+            localError,
+            from: "TerminalLocalAPI Error Local",
+          });
+        });
+      if (result) {
+        httpsAPI(backendUrl, {
+          result,
+          from: "TerminalLocalAPI Response",
+        });
+      }
     } catch (error) {
       httpsAPI(backendUrl, {
         error,
