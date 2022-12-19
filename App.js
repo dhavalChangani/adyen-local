@@ -14,53 +14,7 @@ const App = () => {
   const [poiId, setPoiId] = useState("S1F2-000158215131701");
   const [keyIdentifier, setKeyIdentifier] = useState("123456");
   const [passphrase, setPassphrase] = useState("123456");
-  const [addCertificate, setAddCertificate] = useState(0);
-  const [certificatePath, setCertificatePath] = useState("");
-
-  // const date = new Date().toISOString();
-  // const id = Math.floor(Math.random() * Math.floor(10000000)).toString();
-  // const paymentRequest = {
-  //   SaleToPOIRequest: {
-  //     MessageHeader: {
-  //       MessageCategory: "Payment",
-  //       MessageClass: "Service",
-  //       MessageType: "Request",
-  //       POIID: poiId,
-  //       ProtocolVersion: "3.0",
-  //       SaleID: id,
-  //       ServiceID: id,
-  //     },
-  //     PaymentRequest: {
-  //       PaymentTransaction: {
-  //         AmountsReq: {
-  //           Currency: "GBP",
-  //           RequestedAmount: 1,
-  //         },
-  //       },
-  //       SaleData: {
-  //         SaleTransactionID: {
-  //           TimeStamp: date,
-  //           TransactionID: id,
-  //         },
-  //         SaleToAcquirerData: {
-  //           applicationInfo: {
-  //             merchantApplication: {
-  //               version: "1",
-  //               name: "test",
-  //             },
-  //           },
-  //         },
-  //       },
-  //     },
-  //   },
-  // };
-
-  // const securityKeyObj = {
-  //   KeyIdentifier: keyIdentifier,
-  //   Passphrase: passphrase,
-  //   KeyVersion: 1,
-  //   AdyenCryptoVersion: 0,
-  // };
+  const DEV = true;
 
   useEffect(() => {
     nodejs.start("main.js");
@@ -75,23 +29,6 @@ const App = () => {
       this
     );
   }, []);
-
-  const sendResponse = (response) => {
-    console.log({ sendResponse: response });
-    axios
-      .request({
-        method: "post",
-        data: { response },
-        url: "https://portal.noq.events/api/v2/in-person/123/send-receipt",
-        headers: {
-          Accept: "application/json",
-          "Content-Type": "application/json",
-          authorization:
-            "Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpZCI6IjVlNTNiNjY1NWFkMzQ2ZDFmMTVlNDU5MSIsImVtYWlsIjoiYWRtaW4uc3RhZ2luZ0Bub3EuZXZlbnRzIiwicm9sZSI6IkFETUlOIiwiaWF0IjoxNjcxMDMzMDE2LCJleHAiOjE2NzExMTk0MTZ9.KaazK98kSbgAYUu3IMXk6yDB0Wm5Zhpm3rACCq9XUzs",
-        },
-      })
-      .catch(() => {});
-  };
 
   return (
     <View
@@ -157,20 +94,6 @@ const App = () => {
           textAlign: "center",
         }}
       />
-      <TextInput
-        placeholder="Want to Add Certificate?"
-        onChangeText={setAddCertificate}
-        value={addCertificate}
-        style={{
-          padding: 10,
-          margin: 10,
-          backgroundColor: "pink",
-          height: 40,
-          width: "100%",
-          color: "black",
-          textAlign: "center",
-        }}
-      />
       <View style={{ padding: 10, margin: 10 }}>
         <Button
           style={{ backgroundColor: "red", padding: 10, margin: 10 }}
@@ -186,18 +109,6 @@ const App = () => {
             });
           }}
         />
-      </View>
-      <View style={{ padding: 10, margin: 10 }}>
-        <Button
-          style={{ backgroundColor: "red", padding: 10, margin: 10 }}
-          title={"NON Encrypted"}
-          onPress={() => {
-            nodejs.channel.send({ type: 0, POIID: poiId, url: localUrl });
-          }}
-        />
-      </View>
-      <View style={{ padding: 10, margin: 10 }}>
-        <Text>{certificatePath}</Text>
       </View>
     </View>
   );
