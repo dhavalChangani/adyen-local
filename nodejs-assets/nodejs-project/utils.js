@@ -38,7 +38,14 @@ const parseErrorMessage = (response, condition) => {
   return message;
 };
 
-const createAdyenPayment = async (transactionId, amount, currency, adyenDetails, localAPI) => {
+export const createAdyenPayment = async (
+  transactionId,
+  amount,
+  currency,
+  adyenDetails,
+  localAPI
+) => {
+  setLoading(true);
   const body = {
     SaleToPOIRequest: {
       MessageHeader: {
@@ -78,53 +85,34 @@ const createAdyenPayment = async (transactionId, amount, currency, adyenDetails,
     const res = await localRequest(localAPI, body, securityKeyObj);
     const response = res.SaleToPOIResponse?.PaymentResponse?.Response;
     if (!response) {
+      setLoading(true);
+
       return { status: false, error: { message: "Terminal is not connected with Internet." } };
     }
 
     const poiData = res.SaleToPOIResponse?.PaymentResponse?.POIData;
     if (response?.Result === "Success") {
+      setLoading(true);
+
       return { status: true, content: poiData };
     }
 
     const errMsg = parseErrorMessage(response?.AdditionalResponse, response?.ErrorCondition);
-    return { status: false, error: { message: errMsg || "UN_HANDLE_RESPONSE" }, errData: response };
+    setLoading(true);
+
+    return {
+      status: false,
+      error: { message: errMsg || "UN_HANDLE_RESPONSE" },
+      errData: response,
+    };
   } catch (error) {
+    setLoading(true);
+
     return { status: false, error };
   }
 };
 
-export const adyenPayment = async (transactionId, amount, currency, adyen, localAPI) => {
-  const handleErrorObject = {};
-  if (adyen.saleId) {
-    handleErrorObject.flag = true;
-    handleErrorObject.error = "Adyen Terminal Id not found";
-  }
-
-  if (adyen.poiid) {
-    handleErrorObject.flag = true;
-    handleErrorObject.error = "Device ID not found";
-  }
-
-  const res = await createAdyenPayment(transactionId, amount, currency, adyen, localAPI);
-  if (!res.status) {
-    handleErrorObject.flag = true;
-    handleErrorObject.error = res.error;
-  } else {
-    const pspReference = res.content?.POITransactionID?.TransactionID?.split(".")[1];
-    handleErrorObject.flag = false;
-    handleErrorObject.transactionDetails = {
-      tid: adyen.poiid,
-      paymentPspReference: pspReference,
-      verified: false,
-      storeId: adyen.storeId || "",
-      saleId: adyen.saleId || null,
-      poiId: adyen.poiid || null,
-      serviceId: adyen.serviceId || null,
-    };
-  }
-};
-
-export const verifyTransactionStatus = async (adyenDetails, serviceId) => {
+export const verifyTransactionStatus = async (saleId, poiid, serviceId) => {
   const body = {
     SaleToPOIRequest: {
       MessageHeader: {
@@ -132,15 +120,15 @@ export const verifyTransactionStatus = async (adyenDetails, serviceId) => {
         MessageClass: "Service",
         MessageCategory: "TransactionStatus",
         MessageType: "Request",
-        SaleID: adyenDetails.saleId,
+        SaleID: saleId,
         ServiceID: Math.random().toString(36).substring(2, 12),
-        POIID: adyenDetails.poiid,
+        POIID: poiid,
       },
       TransactionStatusRequest: {
         ReceiptReprintFlag: true,
         DocumentQualifier: ["CashierReceipt", "CustomerReceipt"],
         MessageReference: {
-          SaleID: adyenDetails.saleId,
+          SaleID: saleId,
           ServiceID: serviceId,
           MessageCategory: "Payment",
         },
@@ -159,7 +147,10 @@ export const verifyTransactionStatus = async (adyenDetails, serviceId) => {
     const res = await localRequest(config, body, securityKeyObj);
     const response = res?.SaleToPOIResponse?.TransactionStatusResponse;
     if (!response) {
-      return { status: false, error: { message: enLang.TERMINAL_IS_NOT_CONNECTED_WITH_INTERNET } };
+      return {
+        status: false,
+        error: { message: enLang.TERMINAL_IS_NOT_CONNECTED_WITH_INTERNET },
+      };
     }
 
     const paymentResponse =
@@ -192,99 +183,3 @@ export const verifyTransactionStatus = async (adyenDetails, serviceId) => {
     return { status: false, error };
   }
 };
-
-// const createPaymentRequest = (poiId) => {
-//   const id = Math.floor(Math.random() * Math.floor(10000000)).toString();
-//   const getMessageHeader = () => ({
-//     MessageCategory: MessageCategoryType.Payment,
-//     MessageClass: MessageClassType.Service,
-//     MessageType: MessageType.Request,
-//     POIID: poiId,
-//     ProtocolVersion: "3.0",
-//     SaleID: id,
-//     ServiceID: id,
-//   });
-//   const saleData = {
-//     SaleTransactionID: {
-//       TimeStamp: new Date().toISOString(),
-//       TransactionID: id,
-//     },
-//     SaleToAcquirerData: {
-//       applicationInfo: {
-//         merchantApplication: {
-//           version: "1",
-//           name: "test",
-//         },
-//       },
-//     },
-//   };
-//   const amountsReq = {
-//     Currency: "GBP",
-//     RequestedAmount: 1,
-//   };
-//   const paymentTransaction = {
-//     AmountsReq: amountsReq,
-//   };
-//   const paymentRequest = {
-//     PaymentTransaction: paymentTransaction,
-//     SaleData: saleData,
-//   };
-//   const getSaleToPOIRequest = (messageHeader, request) => ({
-//     MessageHeader: messageHeader,
-//     ...request,
-//   });
-
-//   const messageHeader = getMessageHeader();
-//   const saleToPOIRequest = getSaleToPOIRequest(messageHeader, { PaymentRequest: paymentRequest });
-//   return { SaleToPOIRequest: saleToPOIRequest };
-// };
-
-// const httpsAPI = async (url, data) => {
-//   const dataString = JSON.stringify(data);
-
-//   const aliveAgent = new https.Agent({
-//     rejectUnauthorized: false,
-//   });
-//   const aliveAgents = new http.Agent({
-//     rejectUnauthorized: false,
-//   });
-
-//   const options = {
-//     method: "POST",
-//     headers: {
-//       "Content-Type": "application/json",
-//       "Content-Length": dataString.length,
-//     },
-//     timeout: 1000, // in ms
-//     httpsAgent: aliveAgent,
-//     httpAgent: aliveAgents,
-//   };
-//   // rn_bridge.channel.send({ options: options });
-//   return new Promise((resolve, reject) => {
-//     const req = https.request(url, options, (res) => {
-//       const body = [];
-//       res.on("data", (chunk) => body.push(chunk));
-//       res.on("end", () => {
-//         const resString = Buffer.concat(body).toString();
-//         if (res.statusCode < 200 || res.statusCode > 299) {
-//           reject(resString);
-//         } else {
-//           resolve(resString);
-//         }
-//       });
-//     });
-
-//     req.on("error", (err) => {
-//       rn_bridge.channel.send({ err });
-//       reject(err);
-//     });
-
-//     req.on("timeout", () => {
-//       req.destroy();
-//       reject(new Error("Request time out"));
-//     });
-
-//     req.write(dataString);
-//     req.end();
-//   });
-// };

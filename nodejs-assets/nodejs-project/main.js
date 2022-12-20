@@ -2,43 +2,50 @@ var rn_bridge = require("rn-bridge");
 const path = require("path");
 
 const { Client, TerminalLocalAPI, Config } = require("@adyen/api-library");
-const { adyenPayment, verifyTransactionStatus } = require("./utils");
 
 const config = new Config();
 config.terminalApiLocalEndpoint = "https://localhost";
 config.merchantAccount = "NOQAccountPOS";
-config.certificatePath = path.join(__dirname, "adyen-terminalfleet-test.pem");
 
 const client = new Client({ config });
 client.setEnvironment("TEST", null);
+client.config.certificatePath = path.join(__dirname, "adyen-terminalfleet-test.pem");
 
 const localAPI = new TerminalLocalAPI(client);
 localAPI.apiKeyRequired = false;
 
 rn_bridge.channel.on("message", async (msg) => {
-  const { transactionId, amount, currency, adyen } = msg;
+  try {
+    // const { transactionId, amount, currency, adyen, DEV } = msg;
 
-  switch (msg.category) {
-    case "Payment":
-      const paymentResult = await adyenPayment(transactionId, amount, currency, adyen, localAPI);
-      rn_bridge.channel.send(paymentResult);
-      break;
+    switch (msg.category) {
+      case "Config":
+        if (msg.DEV === false) {
+          client.setEnvironment("LIVE", null);
+          client.config.certificatePath = path.join(__dirname, "adyen-terminalfleet-live.pem");
+        } else if (msg.DEV === true) {
+          client.setEnvironment("TEST", null);
+          client.config.certificatePath = path.join(__dirname, "adyen-terminalfleet-test.pem");
+        }
+        break;
 
-    case "TransactionStatus":
-      const transactionResult = await verifyTransactionStatus(
-        transactionId,
-        amount,
-        currency,
-        adyen,
-        localAPI
-      );
-      rn_bridge.channel.send(transactionResult);
-      break;
+      case "Payment":
+        const paymentResult = await adyenPayment(...{ msg }, localAPI);
+        rn_bridge.channel.send(paymentResult);
+        break;
 
-    case "Print":
-      break;
+      case "TransactionStatus":
+        const transactionResult = await verifyTransactionStatus(...{ msg }, localAPI);
+        rn_bridge.channel.send(transactionResult);
+        break;
+
+      case "Print":
+        break;
+    }
+  } catch (error) {
+    rn_bridge.channel.send({ error });
   }
 });
 
 // Inform react-native node is initialized.
-rn_bridge.channel.send("Node was initialized.");
+rn_bridge.channel.send({ type: "ClientInitiated" });
