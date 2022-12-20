@@ -2,6 +2,7 @@ var rn_bridge = require("rn-bridge");
 const path = require("path");
 
 const { Client, TerminalLocalAPI, Config } = require("@adyen/api-library");
+const { verifyTransactionStatus, createAdyenPayment } = require("./utils");
 
 const config = new Config();
 config.terminalApiLocalEndpoint = "https://localhost";
@@ -16,8 +17,6 @@ localAPI.apiKeyRequired = false;
 
 rn_bridge.channel.on("message", async (msg) => {
   try {
-    // const { transactionId, amount, currency, adyen, DEV } = msg;
-
     switch (msg.category) {
       case "Config":
         if (msg.DEV === false) {
@@ -30,13 +29,13 @@ rn_bridge.channel.on("message", async (msg) => {
         break;
 
       case "Payment":
-        const paymentResult = await adyenPayment(...{ msg }, localAPI);
-        rn_bridge.channel.send(paymentResult);
+        const paymentResult = await createAdyenPayment(...{ msg }, localAPI);
+        rn_bridge.channel.send({ type: "paymentResult", paymentResult });
         break;
 
       case "TransactionStatus":
         const transactionResult = await verifyTransactionStatus(...{ msg }, localAPI);
-        rn_bridge.channel.send(transactionResult);
+        rn_bridge.channel.send({ type: "transactionResult", transactionResult });
         break;
 
       case "Print":

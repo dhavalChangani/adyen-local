@@ -16,8 +16,11 @@ const AdyenProvider = ({ children }) => {
       "message",
       (msg) => {
         console.log({ msg });
-        if (msg.type === "ClientInitiated") {
-          setNodeJSClientStatus(true);
+        switch (msg.type) {
+          case "ClientInitiated":
+            setNodeJSClientStatus(true);
+          case "paymentResult":
+          case "transactionResult":
         }
       },
       this
@@ -30,22 +33,38 @@ const AdyenProvider = ({ children }) => {
     }
   }, [nodeJSClientStatus, DEV]);
 
-  const startAdyenPayment = (keyIdentifier, passphrase, poiId) => {
+  const startAdyenPayment = (
+    saleId,
+    serviceId,
+    poiid,
+    transactionId,
+    currency,
+    amount,
+    keyIdentifier,
+    passphrase
+  ) => {
     setLoading(true);
     nodejs.channel.send({
       category: "Payment",
+      saleId,
+      serviceId,
+      poiid,
+      transactionId,
+      currency,
+      amount,
       keyIdentifier,
       passphrase,
-      POIID: poiId,
     });
   };
 
-  const verifyAdyenTransaction = (saleId, poiid, serviceId) => {
+  const verifyAdyenTransaction = (saleId, poiid, serviceId, keyIdentifier, passphrase) => {
     nodejs.channel.send({
       category: "TransactionStatus",
       saleId,
       poiid,
       serviceId,
+      keyIdentifier,
+      passphrase,
     });
   };
 

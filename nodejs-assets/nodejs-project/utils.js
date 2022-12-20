@@ -39,10 +39,14 @@ const parseErrorMessage = (response, condition) => {
 };
 
 export const createAdyenPayment = async (
+  saleId,
+  serviceId,
+  poiid,
   transactionId,
-  amount,
   currency,
-  adyenDetails,
+  amount,
+  keyIdentifier,
+  passphrase,
   localAPI
 ) => {
   setLoading(true);
@@ -53,9 +57,9 @@ export const createAdyenPayment = async (
         MessageClass: "Service",
         MessageCategory: "Payment",
         MessageType: "Request",
-        SaleID: adyenDetails.saleId,
-        ServiceID: adyenDetails.serviceId,
-        POIID: adyenDetails.poiid,
+        SaleID: saleId,
+        ServiceID: serviceId,
+        POIID: poiid,
       },
       PaymentRequest: {
         SaleData: {
@@ -75,8 +79,8 @@ export const createAdyenPayment = async (
   };
 
   const securityKeyObj = {
-    KeyIdentifier: msg.keyIdentifier,
-    Passphrase: msg.passphrase,
+    KeyIdentifier: keyIdentifier,
+    Passphrase: passphrase,
     KeyVersion: 1,
     AdyenCryptoVersion: 1,
   };
@@ -107,12 +111,18 @@ export const createAdyenPayment = async (
     };
   } catch (error) {
     setLoading(true);
-
     return { status: false, error };
   }
 };
 
-export const verifyTransactionStatus = async (saleId, poiid, serviceId) => {
+export const verifyTransactionStatus = async (
+  saleId,
+  poiid,
+  serviceId,
+  keyIdentifier,
+  passphrase,
+  localAPI
+) => {
   const body = {
     SaleToPOIRequest: {
       MessageHeader: {
@@ -137,19 +147,19 @@ export const verifyTransactionStatus = async (saleId, poiid, serviceId) => {
   };
 
   const securityKeyObj = {
-    KeyIdentifier: msg.keyIdentifier,
-    Passphrase: msg.passphrase,
+    KeyIdentifier: keyIdentifier,
+    Passphrase: passphrase,
     KeyVersion: 1,
     AdyenCryptoVersion: 1,
   };
 
   try {
-    const res = await localRequest(config, body, securityKeyObj);
+    const res = await localRequest(localAPI, body, securityKeyObj);
     const response = res?.SaleToPOIResponse?.TransactionStatusResponse;
     if (!response) {
       return {
         status: false,
-        error: { message: enLang.TERMINAL_IS_NOT_CONNECTED_WITH_INTERNET },
+        error: { message: "Terminal is not connected with internet!" },
       };
     }
 
