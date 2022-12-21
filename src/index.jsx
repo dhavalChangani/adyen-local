@@ -4,10 +4,9 @@ import { useAdyenPayment } from "./AdyenProvider";
 
 export const MainUI = () => {
   const { startAdyenPayment } = useAdyenPayment;
-  const [localUrl, setLocalUrl] = useState("https://localhost");
   const [poiId, setPoiId] = useState("S1F2-000158215131701");
-  const [keyIdentifier, setKeyIdentifier] = useState("123456");
-  const [passphrase, setPassphrase] = useState("123456");
+  const [amount, setAmount] = useState("0");
+  const [currency, setCurrency] = useState("GBP");
 
   return (
     <View
@@ -18,21 +17,15 @@ export const MainUI = () => {
       }}
     >
       <TextInput
-        placeholder="Key Identifier"
-        onChangeText={setKeyIdentifier}
-        value={keyIdentifier}
+        placeholder="Amount"
+        onChangeText={setAmount}
+        value={amount}
         style={style.textInput}
       />
       <TextInput
-        placeholder="Key Passphrase"
-        onChangeText={setPassphrase}
-        value={passphrase}
-        style={style.textInput}
-      />
-      <TextInput
-        placeholder="Input Url"
-        onChangeText={setLocalUrl}
-        value={localUrl}
+        placeholder="Currency"
+        onChangeText={setCurrency}
+        value={currency}
         style={style.textInput}
       />
       <TextInput
@@ -46,7 +39,7 @@ export const MainUI = () => {
           style={{ backgroundColor: "red", padding: 10, margin: 10 }}
           title={"Adyen Payment"}
           onPress={() => {
-            startAdyenPayment(keyIdentifier, passphrase, poiId);
+            startAdyenPayment(amount, currency, poiId);
           }}
         />
       </View>
